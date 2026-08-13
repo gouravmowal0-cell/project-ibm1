@@ -85,7 +85,7 @@
 <header>
   <div class="logo">Lex<span>AI</span></div>
   <span style="color:#4a5568;font-size:13px;">AI Legal Aid System</span>
-  <div class="badge"><span class="status-dot"></span>Live on :8000</div>
+  <div class="badge"><span class="status-dot"></span>Live</div>
 </header>
 
 <div class="layout">
@@ -97,8 +97,8 @@
     <button class="nav-btn" onclick="show('document',this)"><span class="icon">📄</span> Document Analysis</button>
     <button class="nav-btn" onclick="show('health',this)"><span class="icon">❤️</span> Health Check</button>
     <div class="sidebar-label" style="margin-top:auto;">API Docs</div>
-    <button class="nav-btn" onclick="window.open('http://localhost:8000/docs','_blank')"><span class="icon">📘</span> Swagger UI</button>
-    <button class="nav-btn" onclick="window.open('http://localhost:8000/redoc','_blank')"><span class="icon">📗</span> ReDoc</button>
+    <button class="nav-btn" onclick="window.open(getAPI()+'/docs','_blank')"><span class="icon">📘</span> Swagger UI</button>
+    <button class="nav-btn" onclick="window.open(getAPI()+'/redoc','_blank')"><span class="icon">📗</span> ReDoc</button>
   </div>
 
   <!-- MAIN -->
@@ -240,7 +240,12 @@
 <script>
   // Always point to the FastAPI backend — works whether dashboard is
   // opened from file:// OR served at http://localhost:8000
-  const API = 'http://localhost:8000';
+  function getAPI() {
+    return (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? 'http://localhost:8000'
+      : window.location.origin;
+  }
+  const API = getAPI();
   let sessionId = 'session_' + Math.random().toString(36).slice(2,9);
   let selectedFile = null;
 
