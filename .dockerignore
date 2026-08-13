@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Environment secrets — never bake into image
+.env
+
+# Data (mounted as volumes)
+data/chroma_db/
+data/legal_corpus/
+
+# Dev / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Bob / local tooling
+.bob/
+-c/
+.exe/
+"pyenv which python"/
+
+# Docs
+README.md

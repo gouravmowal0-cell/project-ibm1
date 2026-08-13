@@ -1,0 +1,148 @@
+{
+  "id": "legal-aid-flow",
+  "name": "LexAI Legal Aid Multi-Agent Pipeline",
+  "description": "IBM Langflow pipeline connecting all LexAI agents. Import this JSON into IBM Langflow.",
+  "version": "1.0",
+  "nodes": [
+    {
+      "id": "user-input",
+      "type": "TextInput",
+      "display_name": "User Query",
+      "position": { "x": 100, "y": 300 },
+      "data": { "input_value": "Enter your legal question or paste contract text here..." }
+    },
+    {
+      "id": "document-input",
+      "type": "FileInput",
+      "display_name": "Document Upload (Optional)",
+      "position": { "x": 100, "y": 500 },
+      "data": { "file_types": ["pdf", "docx", "txt"] }
+    },
+    {
+      "id": "doc-parser",
+      "type": "CustomComponent",
+      "display_name": "Document Parser",
+      "description": "Parses PDF/DOCX/TXT into plain text",
+      "position": { "x": 350, "y": 500 },
+      "data": {
+        "code": "from parsers.document_parser import parse_bytes\nresult = parse_bytes(file.name, file.read())"
+      }
+    },
+    {
+      "id": "intent-router",
+      "type": "CustomComponent",
+      "display_name": "Intent Classifier (IBM Granite 3-8B)",
+      "description": "Classifies intent: CHAT | CONTRACT | COMPLIANCE | CASE_RESEARCH | QA",
+      "position": { "x": 600, "y": 300 },
+      "data": {
+        "model_id": "ibm/granite-3-8b-instruct",
+        "watsonx_url": "{{IBM_WATSONX_URL}}",
+        "project_id": "{{IBM_WATSONX_PROJECT_ID}}"
+      }
+    },
+    {
+      "id": "chroma-retriever",
+      "type": "ChromaDB",
+      "display_name": "Legal Knowledge Base (ChromaDB)",
+      "description": "Vector store with ingested legal corpus",
+      "position": { "x": 600, "y": 550 },
+      "data": {
+        "collection_name": "legal_corpus",
+        "persist_directory": "./data/chroma_db",
+        "search_type": "mmr",
+        "k": 6
+      }
+    },
+    {
+      "id": "watsonx-embeddings",
+      "type": "WatsonxEmbeddings",
+      "display_name": "IBM watsonx Embeddings (Slate-30M)",
+      "position": { "x": 350, "y": 700 },
+      "data": {
+        "model_id": "ibm/slate-30m-english-rtrvr",
+        "watsonx_url": "{{IBM_WATSONX_URL}}",
+        "project_id": "{{IBM_WATSONX_PROJECT_ID}}"
+      }
+    },
+    {
+      "id": "contract-reviewer-agent",
+      "type": "CustomComponent",
+      "display_name": "Contract Reviewer Agent",
+      "description": "Flags risky clauses, obligations, and missing standard terms",
+      "position": { "x": 950, "y": 100 },
+      "data": {
+        "model_id": "ibm/granite-13b-chat-v2",
+        "system_prompt": "You are an expert contract review attorney. Analyze the contract for risks, obligations, and missing clauses."
+      }
+    },
+    {
+      "id": "compliance-checker-agent",
+      "type": "CustomComponent",
+      "display_name": "Compliance Checker Agent",
+      "description": "Checks documents against GDPR, HIPAA, CCPA, SOX, PCI-DSS",
+      "position": { "x": 950, "y": 250 },
+      "data": {
+        "model_id": "ibm/granite-13b-chat-v2",
+        "supported_frameworks": ["GDPR", "HIPAA", "CCPA", "SOX", "PCI-DSS", "ISO 27001"]
+      }
+    },
+    {
+      "id": "qa-rag-agent",
+      "type": "CustomComponent",
+      "display_name": "Q&A RAG Agent",
+      "description": "Answers legal questions grounded in retrieved knowledge base chunks",
+      "position": { "x": 950, "y": 400 },
+      "data": {
+        "model_id": "ibm/granite-13b-chat-v2",
+        "retrieval_top_k": 6
+      }
+    },
+    {
+      "id": "case-research-agent",
+      "type": "CustomComponent",
+      "display_name": "Case Research Agent",
+      "description": "Retrieves relevant cases, judgments, and legal precedents",
+      "position": { "x": 950, "y": 550 },
+      "data": {
+        "model_id": "ibm/granite-13b-chat-v2"
+      }
+    },
+    {
+      "id": "conversational-agent",
+      "type": "CustomComponent",
+      "display_name": "Conversational Legal Assistant (LexAI)",
+      "description": "Empathetic multi-turn legal assistant with session memory",
+      "position": { "x": 950, "y": 700 },
+      "data": {
+        "model_id": "ibm/granite-13b-chat-v2",
+        "max_history_turns": 10
+      }
+    },
+    {
+      "id": "response-aggregator",
+      "type": "TextOutput",
+      "display_name": "Structured Response",
+      "description": "Aggregates agent output with disclaimer",
+      "position": { "x": 1300, "y": 400 }
+    }
+  ],
+  "edges": [
+    { "source": "user-input",           "target": "intent-router",           "label": "query" },
+    { "source": "document-input",        "target": "doc-parser",              "label": "file" },
+    { "source": "doc-parser",            "target": "intent-router",           "label": "doc_text" },
+    { "source": "watsonx-embeddings",    "target": "chroma-retriever",        "label": "embeddings" },
+    { "source": "chroma-retriever",      "target": "qa-rag-agent",            "label": "context" },
+    { "source": "chroma-retriever",      "target": "conversational-agent",    "label": "context" },
+    { "source": "chroma-retriever",      "target": "case-research-agent",     "label": "context" },
+    { "source": "intent-router",         "target": "contract-reviewer-agent", "label": "CONTRACT" },
+    { "source": "intent-router",         "target": "compliance-checker-agent","label": "COMPLIANCE" },
+    { "source": "intent-router",         "target": "qa-rag-agent",            "label": "QA" },
+    { "source": "intent-router",         "target": "case-research-agent",     "label": "CASE_RESEARCH" },
+    { "source": "intent-router",         "target": "conversational-agent",    "label": "CHAT" },
+    { "source": "contract-reviewer-agent","target": "response-aggregator",   "label": "result" },
+    { "source": "compliance-checker-agent","target": "response-aggregator",  "label": "result" },
+    { "source": "qa-rag-agent",          "target": "response-aggregator",    "label": "result" },
+    { "source": "case-research-agent",   "target": "response-aggregator",    "label": "result" },
+    { "source": "conversational-agent",  "target": "response-aggregator",    "label": "result" }
+  ]
+}

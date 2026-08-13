@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LexAI — Legal Aid System</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, "Segoe UI", sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+
+    /* ---------- HEADER ---------- */
+    header { background: #1a1d27; border-bottom: 1px solid #2d3148; padding: 16px 32px; display: flex; align-items: center; gap: 14px; }
+    header .logo { font-size: 22px; font-weight: 700; color: #7c3aed; letter-spacing: -0.5px; }
+    header .logo span { color: #a78bfa; }
+    header .badge { background: #22c55e22; color: #22c55e; border: 1px solid #22c55e55; font-size: 11px; padding: 2px 10px; border-radius: 20px; margin-left: auto; }
+    header .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block; margin-right: 4px; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* ---------- LAYOUT ---------- */
+    .layout { display: grid; grid-template-columns: 220px 1fr; height: calc(100vh - 57px); }
+
+    /* ---------- SIDEBAR ---------- */
+    .sidebar { background: #1a1d27; border-right: 1px solid #2d3148; padding: 20px 12px; display: flex; flex-direction: column; gap: 6px; }
+    .nav-btn { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; border: none; background: transparent; color: #94a3b8; cursor: pointer; font-size: 14px; width: 100%; text-align: left; transition: all 0.2s; }
+    .nav-btn:hover { background: #2d3148; color: #e2e8f0; }
+    .nav-btn.active { background: #7c3aed22; color: #a78bfa; border: 1px solid #7c3aed44; }
+    .nav-btn .icon { font-size: 18px; width: 22px; text-align: center; }
+    .sidebar-label { font-size: 11px; color: #4a5568; text-transform: uppercase; letter-spacing: 1px; padding: 14px 14px 4px; }
+
+    /* ---------- MAIN CONTENT ---------- */
+    .main { overflow-y: auto; padding: 28px 32px; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .page-title { font-size: 20px; font-weight: 600; color: #e2e8f0; margin-bottom: 6px; }
+    .page-sub { font-size: 13px; color: #64748b; margin-bottom: 24px; }
+
+    /* ---------- CHAT ---------- */
+    .chat-box { background: #1a1d27; border: 1px solid #2d3148; border-radius: 12px; height: 420px; overflow-y: auto; padding: 20px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 14px; }
+    .msg { max-width: 78%; padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.6; }
+    .msg.user { background: #7c3aed; color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .msg.bot { background: #2d3148; color: #e2e8f0; align-self: flex-start; border-bottom-left-radius: 4px; }
+    .msg.bot .agent-tag { font-size: 11px; color: #a78bfa; margin-bottom: 4px; font-weight: 600; }
+    .msg.loading { background: #2d3148; color: #64748b; align-self: flex-start; font-style: italic; }
+    .chat-input-row { display: flex; gap: 10px; }
+    .chat-input-row input { flex: 1; background: #1a1d27; border: 1px solid #2d3148; color: #e2e8f0; padding: 12px 16px; border-radius: 8px; font-size: 14px; outline: none; }
+    .chat-input-row input:focus { border-color: #7c3aed; }
+    .btn { background: #7c3aed; color: #fff; border: none; padding: 12px 22px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: background 0.2s; }
+    .btn:hover { background: #6d28d9; }
+    .btn:disabled { background: #4a5568; cursor: not-allowed; }
+    .btn-outline { background: transparent; border: 1px solid #2d3148; color: #94a3b8; }
+    .btn-outline:hover { border-color: #7c3aed; color: #a78bfa; background: transparent; }
+
+    /* ---------- DOCUMENT ---------- */
+    .upload-zone { border: 2px dashed #2d3148; border-radius: 12px; padding: 40px; text-align: center; color: #64748b; cursor: pointer; transition: all 0.2s; margin-bottom: 16px; }
+    .upload-zone:hover, .upload-zone.drag { border-color: #7c3aed; color: #a78bfa; background: #7c3aed11; }
+    .upload-zone .upload-icon { font-size: 36px; margin-bottom: 10px; }
+    .select-row { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    select { background: #1a1d27; border: 1px solid #2d3148; color: #e2e8f0; padding: 10px 14px; border-radius: 8px; font-size: 14px; outline: none; cursor: pointer; }
+    select:focus { border-color: #7c3aed; }
+    .result-box { background: #1a1d27; border: 1px solid #2d3148; border-radius: 12px; padding: 20px; font-size: 14px; line-height: 1.7; color: #cbd5e1; white-space: pre-wrap; min-height: 100px; }
+    .result-box .result-label { font-size: 11px; color: #a78bfa; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+
+    /* ---------- HEALTH ---------- */
+    .health-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .health-card { background: #1a1d27; border: 1px solid #2d3148; border-radius: 12px; padding: 20px; }
+    .health-card .label { font-size: 12px; color: #64748b; margin-bottom: 6px; }
+    .health-card .value { font-size: 16px; font-weight: 600; color: #e2e8f0; word-break: break-all; }
+    .health-card .ok { color: #22c55e; }
+    .health-card .err { color: #ef4444; }
+
+    /* ---------- DISCLAIMER ---------- */
+    .disclaimer { background: #7c3aed11; border: 1px solid #7c3aed33; border-radius: 8px; padding: 12px 16px; font-size: 12px; color: #a78bfa; margin-top: 20px; }
+
+    /* ---------- QUICK ACTIONS ---------- */
+    .quick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .quick-card { background: #1a1d27; border: 1px solid #2d3148; border-radius: 10px; padding: 16px; cursor: pointer; transition: all 0.2s; }
+    .quick-card:hover { border-color: #7c3aed; background: #7c3aed11; }
+    .quick-card .qicon { font-size: 24px; margin-bottom: 8px; }
+    .quick-card .qtitle { font-size: 13px; font-weight: 600; color: #e2e8f0; margin-bottom: 4px; }
+    .quick-card .qdesc { font-size: 12px; color: #64748b; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Lex<span>AI</span></div>
+  <span style="color:#4a5568;font-size:13px;">AI Legal Aid System</span>
+  <div class="badge"><span class="status-dot"></span>Live on :8000</div>
+</header>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-label">Navigation</div>
+    <button class="nav-btn active" onclick="show('home',this)"><span class="icon">🏠</span> Home</button>
+    <button class="nav-btn" onclick="show('chat',this)"><span class="icon">💬</span> Legal Chat</button>
+    <button class="nav-btn" onclick="show('document',this)"><span class="icon">📄</span> Document Analysis</button>
+    <button class="nav-btn" onclick="show('health',this)"><span class="icon">❤️</span> Health Check</button>
+    <div class="sidebar-label" style="margin-top:auto;">API Docs</div>
+    <button class="nav-btn" onclick="window.open('http://localhost:8000/docs','_blank')"><span class="icon">📘</span> Swagger UI</button>
+    <button class="nav-btn" onclick="window.open('http://localhost:8000/redoc','_blank')"><span class="icon">📗</span> ReDoc</button>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- HOME -->
+    <div class="panel active" id="panel-home">
+      <div class="page-title">Welcome to LexAI ⚖️</div>
+      <div class="page-sub">IBM watsonx.ai powered legal assistant — ask questions, analyze contracts, check compliance.</div>
+
+      <div class="quick-grid">
+        <div class="quick-card" onclick="show('chat', document.querySelector('[onclick*=chat]'))">
+          <div class="qicon">💬</div>
+          <div class="qtitle">Legal Chat</div>
+          <div class="qdesc">Ask any legal question in plain language</div>
+        </div>
+        <div class="quick-card" onclick="show('document', document.querySelector('[onclick*=document]'))">
+          <div class="qicon">📄</div>
+          <div class="qtitle">Contract Review</div>
+          <div class="qdesc">Upload PDF/DOCX to find risky clauses</div>
+        </div>
+        <div class="quick-card" onclick="show('document', document.querySelector('[onclick*=document]')); document.getElementById('atype').value='COMPLIANCE'">
+          <div class="qicon">✅</div>
+          <div class="qtitle">Compliance Check</div>
+          <div class="qdesc">GDPR, HIPAA & more compliance checks</div>
+        </div>
+        <div class="quick-card" onclick="show('health', document.querySelector('[onclick*=health]')); loadHealth()">
+          <div class="qicon">❤️</div>
+          <div class="qtitle">Server Status</div>
+          <div class="qdesc">Check if all services are running</div>
+        </div>
+      </div>
+
+      <div class="health-grid">
+        <div class="health-card">
+          <div class="label">Primary Model</div>
+          <div class="value" style="font-size:13px;color:#a78bfa;">meta-llama/llama-3-3-70b-instruct</div>
+        </div>
+        <div class="health-card">
+          <div class="label">Router Model</div>
+          <div class="value" style="font-size:13px;color:#a78bfa;">ibm/granite-3-1-8b-base</div>
+        </div>
+        <div class="health-card">
+          <div class="label">Vector Store</div>
+          <div class="value" style="color:#22c55e;">ChromaDB</div>
+        </div>
+        <div class="health-card">
+          <div class="label">API Server</div>
+          <div class="value" style="color:#22c55e;">FastAPI :8000</div>
+        </div>
+      </div>
+
+      <div class="disclaimer">⚠️ LexAI provides legal <strong>information</strong>, not legal <strong>advice</strong>. Always consult a qualified attorney for matters specific to your situation.</div>
+    </div>
+
+    <!-- CHAT -->
+    <div class="panel" id="panel-chat">
+      <div class="page-title">💬 Legal Chat</div>
+      <div class="page-sub">Ask any legal question — our AI will answer using IBM watsonx.ai (Llama 3.3 70B)</div>
+
+      <div class="chat-box" id="chatBox">
+        <div class="msg bot">
+          <div class="agent-tag">LexAI Assistant</div>
+          Hello! I'm your AI legal assistant powered by IBM watsonx.ai. Ask me anything about legal topics — contracts, rights, compliance, and more!
+        </div>
+      </div>
+
+      <div class="chat-input-row">
+        <input type="text" id="chatInput" placeholder="e.g. Can my employer fire me without notice?" onkeydown="if(event.key==='Enter') sendChat()" />
+        <button class="btn" id="sendBtn" onclick="sendChat()">Send</button>
+        <button class="btn btn-outline" onclick="clearChat()">Clear</button>
+      </div>
+      <div class="disclaimer">⚠️ Responses are for informational purposes only, not legal advice.</div>
+    </div>
+
+    <!-- DOCUMENT -->
+    <div class="panel" id="panel-document">
+      <div class="page-title">📄 Document Analysis</div>
+      <div class="page-sub">Upload a contract or legal document (PDF, DOCX, TXT) or paste text for AI analysis</div>
+
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')"
+           ondrop="handleDrop(event)">
+        <div class="upload-icon">📂</div>
+        <div id="uploadLabel">Click to upload or drag & drop a file</div>
+        <div style="font-size:12px;color:#4a5568;margin-top:4px;">PDF, DOCX, TXT supported</div>
+      </div>
+      <input type="file" id="fileInput" accept=".pdf,.docx,.txt" style="display:none" onchange="handleFile(this)" />
+
+      <div style="margin-bottom:16px;">
+        <div style="font-size:12px;color:#64748b;margin-bottom:8px;">Or paste document text directly:</div>
+        <textarea id="pasteText" rows="5" style="width:100%;background:#1a1d27;border:1px solid #2d3148;color:#e2e8f0;padding:12px;border-radius:8px;font-size:13px;outline:none;resize:vertical;" placeholder="Paste your contract or legal text here..."></textarea>
+      </div>
+
+      <div class="select-row">
+        <div>
+          <div style="font-size:12px;color:#64748b;margin-bottom:4px;">Analysis Type</div>
+          <select id="atype">
+            <option value="CONTRACT">Contract Review</option>
+            <option value="COMPLIANCE">Compliance Check</option>
+            <option value="SUMMARIZE">Summarize</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:12px;color:#64748b;margin-bottom:4px;">Framework (for Compliance)</div>
+          <select id="framework">
+            <option value="GENERAL">General</option>
+            <option value="GDPR">GDPR</option>
+            <option value="HIPAA">HIPAA</option>
+            <option value="CCPA">CCPA</option>
+          </select>
+        </div>
+        <div style="align-self:flex-end;">
+          <button class="btn" id="analyzeBtn" onclick="analyzeDoc()">Analyze Document</button>
+        </div>
+      </div>
+
+      <div class="result-box" id="docResult">
+        <div class="result-label">Result</div>
+        <span style="color:#4a5568;">Analysis results will appear here...</span>
+      </div>
+      <div class="disclaimer">⚠️ Document analysis is for informational purposes only.</div>
+    </div>
+
+    <!-- HEALTH -->
+    <div class="panel" id="panel-health">
+      <div class="page-title">❤️ Health Check</div>
+      <div class="page-sub">Live server and services status</div>
+      <button class="btn" onclick="loadHealth()" style="margin-bottom:20px;">Refresh Status</button>
+      <div class="health-grid" id="healthGrid">
+        <div class="health-card"><div class="label">Status</div><div class="value" style="color:#64748b;">Click Refresh...</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // Always point to the FastAPI backend — works whether dashboard is
+  // opened from file:// OR served at http://localhost:8000
+  const API = 'http://localhost:8000';
+  let sessionId = 'session_' + Math.random().toString(36).slice(2,9);
+  let selectedFile = null;
+
+  // --- Navigation ---
+  function show(name, btn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    if (btn) btn.classList.add('active');
+  }
+
+  // --- Fetch with timeout helper (LLM calls can take 30-60s) ---
+  async function apiFetch(url, options = {}, timeoutMs = 120000) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { ...options, signal: ctrl.signal });
+      clearTimeout(timer);
+      return res;
+    } catch (e) {
+      clearTimeout(timer);
+      if (e.name === 'AbortError') throw new Error('Request timed out. The AI model is taking too long. Please try again.');
+      throw new Error('Cannot connect to server at ' + API + '. Make sure the server is running:\n\nuvicorn api.main:app --reload --port 8000');
+    }
+  }
+
+  // --- Chat ---
+  async function sendChat() {
+    const input = document.getElementById('chatInput');
+    const msg = input.value.trim();
+    if (!msg) return;
+    input.value = '';
+    appendMsg('user', msg);
+    const loader = appendMsg('loading', 'AI is thinking... (may take 15-30 seconds)');
+    document.getElementById('sendBtn').disabled = true;
+    try {
+      const res = await apiFetch(API + '/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg, session_id: sessionId })
+      });
+      const data = await res.json();
+      loader.remove();
+      if (data.response) {
+        appendMsg('bot', data.response, 'LexAI Assistant');
+      } else if (data.detail) {
+        appendMsg('bot', 'Server error: ' + data.detail, 'Error');
+      } else {
+        appendMsg('bot', JSON.stringify(data, null, 2), 'Response');
+      }
+    } catch(e) {
+      loader.remove();
+      appendMsg('bot', e.message, 'Connection Error');
+    }
+    document.getElementById('sendBtn').disabled = false;
+  }
+
+  function appendMsg(type, text, agentTag) {
+    const box = document.getElementById('chatBox');
+    const div = document.createElement('div');
+    div.className = 'msg ' + type;
+    if (agentTag) {
+      div.innerHTML = '<div class="agent-tag">' + agentTag + '</div>' + escHtml(text);
+    } else {
+      div.textContent = text;
+    }
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+    return div;
+  }
+
+  function clearChat() {
+    const box = document.getElementById('chatBox');
+    box.innerHTML = '<div class="msg bot"><div class="agent-tag">LexAI Assistant</div>Chat cleared. Ask me anything!</div>';
+    sessionId = 'session_' + Math.random().toString(36).slice(2,9);
+  }
+
+  // --- Document ---
+  function handleFile(input) {
+    if (input.files[0]) {
+      selectedFile = input.files[0];
+      document.getElementById('uploadLabel').textContent = 'File selected: ' + selectedFile.name;
+      document.getElementById('uploadZone').style.borderColor = '#22c55e';
+    }
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('uploadZone').classList.remove('drag');
+    const f = e.dataTransfer.files[0];
+    if (f) { selectedFile = f; document.getElementById('uploadLabel').textContent = 'File: ' + f.name; document.getElementById('uploadZone').style.borderColor = '#22c55e'; }
+  }
+
+  async function analyzeDoc() {
+    const pasteText = document.getElementById('pasteText').value.trim();
+    const atype = document.getElementById('atype').value;
+    const framework = document.getElementById('framework').value;
+    const resultBox = document.getElementById('docResult');
+    const btn = document.getElementById('analyzeBtn');
+
+    if (!selectedFile && !pasteText) {
+      resultBox.innerHTML = '<div class="result-label">Error</div><span style="color:#ef4444;">Please upload a file or paste document text first.</span>';
+      return;
+    }
+
+    resultBox.innerHTML = '<div class="result-label">Analyzing...</div><span style="color:#64748b;">AI is processing your document (15-30 seconds)...</span>';
+    btn.disabled = true;
+
+    try {
+      let res, data;
+      if (selectedFile && !pasteText) {
+        const form = new FormData();
+        form.append('file', selectedFile);
+        form.append('analysis_type', atype);
+        form.append('framework', framework);
+        res = await apiFetch(API + '/document/upload', { method: 'POST', body: form });
+      } else {
+        res = await apiFetch(API + '/document/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ document_text: pasteText, analysis_type: atype, framework: framework })
+        });
+      }
+      data = await res.json();
+      if (data.data) {
+        resultBox.innerHTML = '<div class="result-label">' + atype + ' Result</div>' + escHtml(JSON.stringify(data.data, null, 2));
+      } else {
+        resultBox.innerHTML = '<div class="result-label">Error</div><span style="color:#ef4444;">' + escHtml(JSON.stringify(data)) + '</span>';
+      }
+    } catch(e) {
+      resultBox.innerHTML = '<div class="result-label">Error</div><span style="color:#ef4444;">' + escHtml(e.message) + '</span>';
+    }
+    btn.disabled = false;
+  }
+
+  // --- Health ---
+  async function loadHealth() {
+    const grid = document.getElementById('healthGrid');
+    grid.innerHTML = '<div class="health-card"><div class="label">Checking...</div><div class="value" style="color:#64748b;">...</div></div>';
+    try {
+      const res = await apiFetch(API + '/health', {}, 8000);
+      const data = await res.json();
+      grid.innerHTML = `
+        <div class="health-card"><div class="label">Status</div><div class="value ok">${data.status.toUpperCase()}</div></div>
+        <div class="health-card"><div class="label">Version</div><div class="value">${data.version}</div></div>
+        <div class="health-card"><div class="label">Primary Model</div><div class="value" style="font-size:12px;color:#a78bfa;">${data.models?.primary || 'N/A'}</div></div>
+        <div class="health-card"><div class="label">Router Model</div><div class="value" style="font-size:12px;color:#a78bfa;">${data.models?.router || 'N/A'}</div></div>
+        <div class="health-card"><div class="label">API Server</div><div class="value" style="font-size:12px;">${API}</div></div>
+        <div class="health-card"><div class="label">Swagger Docs</div><div class="value"><a href="${API}/docs" target="_blank" style="color:#7c3aed;">Open Docs</a></div></div>
+      `;
+    } catch(e) {
+      grid.innerHTML = `<div class="health-card" style="grid-column:1/-1"><div class="label">Status</div><div class="value err">SERVER NOT RUNNING<br><small style="color:#94a3b8;font-size:12px;font-weight:400;">Run this command in terminal:<br>uvicorn api.main:app --reload --port 8000</small></div></div>`;
+    }
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // Auto-check health on load
+  window.addEventListener('load', loadHealth);
+</script>
+</body>
+</html>
