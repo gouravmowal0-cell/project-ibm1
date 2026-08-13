@@ -12,6 +12,8 @@ def get_embeddings() -> Embeddings:
     """
     Returns IBM watsonx.ai embeddings when credentials are present,
     otherwise falls back to a local HuggingFace model.
+    IBM credentials are required on Render — the local fallback downloads
+    ~90 MB and should only be used in local dev.
     """
     from config.settings import get_settings
     settings = get_settings()
@@ -28,7 +30,7 @@ def get_embeddings() -> Embeddings:
         except Exception:
             pass  # Fall through to local model
 
-    # Local fallback — good for legal text
+    # Local fallback — only used when IBM credentials are absent
     from langchain_huggingface import HuggingFaceEmbeddings
     return HuggingFaceEmbeddings(
         model_name="sentence-transformers/all-MiniLM-L6-v2",
