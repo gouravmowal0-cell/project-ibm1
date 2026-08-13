@@ -73,11 +73,13 @@ def create_app() -> FastAPI:
 
     @app.get("/health", response_model=HealthResponse, tags=["Health"])
     async def health_check():
+        ibm_configured = bool(settings.ibm_watsonx_api_key and settings.ibm_watsonx_project_id)
         return HealthResponse(
-            status="ok",
+            status="ok" if ibm_configured else "degraded",
             models={
                 "primary": settings.watsonx_model_id,
                 "router": settings.watsonx_router_model_id,
+                "ibm_credentials": "configured" if ibm_configured else "MISSING — set IBM_WATSONX_API_KEY and IBM_WATSONX_PROJECT_ID in Render environment",
             },
         )
 
