@@ -241,9 +241,13 @@
   // Always point to the FastAPI backend — works whether dashboard is
   // opened from file:// OR served at http://localhost:8000
   function getAPI() {
-    return (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-      ? 'http://localhost:8000'
-      : window.location.origin;
+    const h = window.location.hostname;
+    if (!h || h === 'localhost' || h === '127.0.0.1') {
+      // Opened as file:// or local dev — use local server
+      return 'http://localhost:8000';
+    }
+    // Deployed on Render or any other host — use same origin
+    return window.location.origin;
   }
   const API = getAPI();
   let sessionId = 'session_' + Math.random().toString(36).slice(2,9);
