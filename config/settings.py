@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     watson_discovery_collection_id: str = ""
 
     # Vector store (ChromaDB)
-    chroma_persist_dir: str = "./data/chroma_db"
+    chroma_persist_dir: str = "/tmp/chroma_db"
     chroma_collection_name: str = "legal_corpus"
 
     # API server

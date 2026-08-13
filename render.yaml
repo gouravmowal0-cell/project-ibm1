@@ -3,28 +3,26 @@ services:
     name: lexai-legal-aid
     runtime: python
     region: oregon
-    plan: starter          # change to "standard" for production workloads
+    plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT --workers 1
     healthCheckPath: /health
     envVars:
       - key: IBM_WATSONX_API_KEY
-        sync: false          # set manually in Render dashboard
+        sync: false
       - key: IBM_WATSONX_PROJECT_ID
         sync: false
       - key: IBM_WATSONX_URL
         value: https://us-south.ml.cloud.ibm.com
       - key: CHROMA_PERSIST_DIR
-        value: /opt/render/project/src/data/chroma_db
+        value: /tmp/chroma_db
       - key: CHROMA_COLLECTION_NAME
         value: legal_corpus
       - key: LEGAL_CORPUS_DIR
-        value: /opt/render/project/src/data/legal_corpus
+        value: /tmp/legal_corpus
       - key: API_DEBUG
         value: "false"
       - key: PYTHON_VERSION
         value: "3.11.9"
-    disk:
-      name: lexai-data
-      mountPath: /opt/render/project/src/data
-      sizeGB: 5
+      - key: WEB_CONCURRENCY
+        value: "1"
